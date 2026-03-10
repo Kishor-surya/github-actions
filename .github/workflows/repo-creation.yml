@@ -1,0 +1,36 @@
+name: Repo Creation from Issue Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  create-repo:
+    if: contains(github.event.comment.body, '@app-repo-creation')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create repo from template
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const repoName = `calculator-app-${context.issue.number}`;
+            const org = context.repo.owner;
+
+            // Generate new repo from template
+            await github.rest.repos.createUsingTemplate({
+              template_owner: org,
+              template_repo: "java-calculator-template",   // <-- your template repo
+              owner: org,
+              name: repoName,
+              private: false,
+              description: "Auto-created Calculator App from issue comment"
+            });
+
+            // Post back to issue
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Repository created: https://github.com/${org}/${repoName}`
+            });
